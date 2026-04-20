@@ -97,9 +97,6 @@ class Representacao:
 
         ExplicitBitVect   → GetNumBits()  → dtype int8
         UIntSparseIntVect → GetLength()   → dtype float32
-            CRÍTICO: len() retorna apenas bits não-zero, NÃO o tamanho total.
-            Usar len() causava arrays de tamanho variável → np.stack 1D →
-            IndexError: tuple index out of range em X_train.shape[1].
         """
         fp_arrays = []
         for idx in self.dataframe.index:
