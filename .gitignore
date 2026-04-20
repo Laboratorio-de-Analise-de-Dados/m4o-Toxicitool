@@ -1,0 +1,139 @@
+# ============================================================
+# ToxiciTOOL — .gitignore
+#
+# Filosofia:
+#   O repositório versiona CÓDIGO + DADOS BRUTOS (CSVs leves).
+#   Artefatos derivados (pkl, npz, keras, png) são regenerados
+#   pelo pipeline a partir dos CSVs e NÃO entram no controle
+#   de versão.
+# ============================================================
+
+
+# ──────────────────────────────────────────────────────────────
+# INFRAESTRUTURA DOCKER (Ainda será desenvolvida)
+# ──────────────────────────────────────────────────────────────
+docker/
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+
+# ──────────────────────────────────────────────────────────────
+# MÓDULOS GNN (Implementação futura)
+# ──────────────────────────────────────────────────────────────
+*grafo*.py
+*Grafo*.py
+*GNN*.py
+src/modeling/modelagem_GNN_MTL.py
+src/representation/RepresentacaoGrafo.py
+src/representation/grafo_MTL.py
+results/modelos_salvos/gnn/
+results/plots/multitask/png/regressao/gnn/
+
+
+# ──────────────────────────────────────────────────────────────
+# ARTEFATOS DERIVADOS 
+# Gerados automaticamente pelo pipeline a partir dos CSVs.
+# ──────────────────────────────────────────────────────────────
+
+# Tensores pré-processados (gerados pela Etapa 1 e 2)
+data/preprocessed/
+# Índices de split pré-computados (gerados pela Etapa 2.5)
+data/splits/
+
+
+!data/.gitkeep
+!data/preprocessed/.gitkeep
+!data/splits/.gitkeep
+!data/splits/scaffold/.gitkeep
+!data/splits/butina/.gitkeep
+!data/splits/random/.gitkeep
+
+
+# ──────────────────────────────────────────────────────────────
+# ARTEFATOS PESADOS DE RESULTADOS
+# ──────────────────────────────────────────────────────────────
+
+# Pesos de modelo
+*.keras
+*.pt
+*.h5
+*.ckpt
+*.ckpt.index
+*.ckpt.data-*
+
+# Binários de dados processados
+*.pkl
+*.npz
+
+# Plots e imagens geradas
+*.png
+*.jpg
+*.jpeg
+*.svg
+
+# Pastas de resultados volumosas
+results/modelos_salvos/
+results/plots/
+results/melhor_modelo/
+
+# Mantém os logs de métricas Excel (leves, úteis para rastreio)
+!results/tabelas/
+# Mas exclui os excels gerados automaticamente (regeneráveis)
+results/tabelas/multitask/MTL_Ranking_*.xlsx
+
+
+# ──────────────────────────────────────────────────────────────
+# PYTHON
+# ──────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+
+
+# ──────────────────────────────────────────────────────────────
+# JUPYTER
+# ──────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+
+
+# ──────────────────────────────────────────────────────────────
+# AMBIENTES VIRTUAIS / CONDA
+# ──────────────────────────────────────────────────────────────
+.env
+.venv
+env/
+venv/
+conda-env/
+.conda/
+
+
+# ──────────────────────────────────────────────────────────────
+# EDITORES E SISTEMA
+# ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.bak
+
+
+# ──────────────────────────────────────────────────────────────
+# TESTES E TYPE CHECKING
+# ──────────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/

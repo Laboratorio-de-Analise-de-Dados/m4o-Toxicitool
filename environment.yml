@@ -1,0 +1,38 @@
+name: toxicitool
+
+channels:
+  - conda-forge   # único canal com RDKit completo (PandasTools, rdMolStandardize)
+  - defaults
+
+dependencies:
+  # ── Python ────────────────────────────────────────────────
+  - python=3.11
+
+  # ── RDKit completo (APENAS via conda-forge) ───────────────
+  # pip não distribui PandasTools nem rdMolStandardize
+  - rdkit>=2023.3.1
+
+  # ── Conda-forge: pacotes que se integram melhor com RDKit ─
+  - numpy>=1.23
+  - pandas>=1.5
+  - cudatoolkit>=11.8
+  - cudnn>=8.6
+
+  # ── Restante via pip ─────────────────────────────────────
+  - pip
+  - pip:
+    - scikit-learn>=1.2.0
+    - tensorflow>=2.12.0
+    - matplotlib>=3.6.0
+    - seaborn>=0.12.0
+    - openpyxl>=3.0.0
+    - joblib>=1.2.0
+    - pyyaml>=6.0
+    - tqdm>=4.65.0
+    - jupyter>=1.0.0
+    - notebook>=7.0.0
+    - jupyterlab>=4.0.0
+    - ipykernel>=6.0.0
+    - pytest>=7.0.0
+    - black>=23.0.0
+    - flake8>=6.0.0
