@@ -338,6 +338,7 @@ O notebook **`notebooks/reproduzir_campeoes.ipynb`** permite auditar qualquer ex
 ```bash
 jupyter notebook notebooks/reproduzir_campeoes.ipynb
 ```
+Ou rodar célula por célula no notebook.
 
 ---
 
