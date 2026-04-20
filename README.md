@@ -197,7 +197,7 @@ results/plots/  +  MTL_Ranking_*.xlsx
 
 ```bash
 # 1. Clonar o repositório
-git clone <url>
+git clone https://github.com/C0rvito/m4o-Toxicitool.git
 cd ToxiciTOOL
 
 # 2. Criar e ativar o ambiente
