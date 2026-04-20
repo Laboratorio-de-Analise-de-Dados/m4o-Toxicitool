@@ -13,8 +13,7 @@ import sys
 import importlib
 from pathlib import Path
 
-# Mapeamento: nome do pacote → nome do módulo Python para importar
-# (necessário quando os dois diferem, ex: scikit-learn → sklearn)
+
 NOME_MODULO: dict[str, str] = {
     "scikit-learn":    "sklearn",
     "tensorflow":      "tensorflow",
@@ -29,7 +28,7 @@ NOME_MODULO: dict[str, str] = {
 }
 
 # Pacotes opcionais (ausência não interrompe o pipeline Morgan)
-OPCIONAIS = {"torch", "torch-geometric", "torch-scatter", "torch-sparse"}
+# OPCIONAIS = {"torch", "torch-geometric", "torch-scatter", "torch-sparse"}
 
 
 def normalizar_nome(req: str) -> str:
