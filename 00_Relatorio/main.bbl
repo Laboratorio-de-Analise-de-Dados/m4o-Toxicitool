@@ -1,0 +1,121 @@
+\providecommand{\abntreprintinfo}[1]{%
+ \citeonline{#1}}
+\setlength{\labelsep}{0pt}\begin{thebibliography}{}
+\providecommand{\abntrefinfo}[3]{}
+\providecommand{\abntbstabout}[1]{}
+\abntbstabout{v-1.9.7 }
+
+\bibitem[Bemis e Murcko 1996]{bemis1996}
+\abntrefinfo{Bemis e Murcko}{BEMIS; MURCKO}{1996}
+{BEMIS, G.~W.; MURCKO, M.~A. The properties of known drugs. 1. molecular frameworks.
+\emph{Journal of Medicinal Chemistry}, v.~39, n.~15, p. 2887--2893, 1996.}
+
+\bibitem[{BIO}, {Informa Pharma Intelligence} e {QLS Advisors} 2021]{bio2021}
+\abntrefinfo{{BIO}, {Informa Pharma Intelligence} e {QLS Advisors}}{{BIO}; {Informa Pharma Intelligence}; {QLS Advisors}}{2021}
+{{BIO}; {Informa Pharma Intelligence}; {QLS Advisors}. \emph{Clinical Development Success Rates and Contributing Factors 2011--2020}.
+[S.l.], 2021.}
+
+\bibitem[Butina 1999]{butina1999}
+\abntrefinfo{Butina}{BUTINA}{1999}
+{BUTINA, D. Unsupervised data base clustering based on {Daylight}'s fingerprint and {Tanimoto} similarity: A fast and automated way to cluster small and large data sets.
+\emph{Journal of Chemical Information and Computer Sciences}, v.~39, n.~4, p. 747--750, 1999.}
+
+\bibitem[Caruana 1997]{caruana1997}
+\abntrefinfo{Caruana}{CARUANA}{1997}
+{CARUANA, R. Multitask learning.
+\emph{Machine Learning}, v.~28, n.~1, p. 41--75, 1997.}
+
+\bibitem[DiMasi, Grabowski e Hansen 2016]{dimasi2016}
+\abntrefinfo{DiMasi, Grabowski e Hansen}{DIMASI; GRABOWSKI; HANSEN}{2016}
+{DIMASI, J.~A.; GRABOWSKI, H.~G.; HANSEN, R.~W. Innovation in the pharmaceutical industry: new estimates of {R\&D} costs.
+\emph{Journal of Health Economics}, Elsevier, v.~47, p. 20--33, 2016.}
+
+\bibitem[Huber 1964]{huber1964}
+\abntrefinfo{Huber}{HUBER}{1964}
+{HUBER, P.~J. Robust estimation of a location parameter.
+\emph{The Annals of Mathematical Statistics}, v.~35, n.~1, p. 73--101, 1964.}
+
+\bibitem[Kendall e Gal 2017]{kendall2017}
+\abntrefinfo{Kendall e Gal}{KENDALL; GAL}{2017}
+{KENDALL, A.; GAL, Y. What uncertainties do we need in bayesian deep learning for computer vision? In:  \emph{Advances in Neural Information Processing Systems (NeurIPS)}. [S.l.: s.n.], 2017. v.~30, p. 5574--5584.}
+
+\bibitem[Kingma e Ba 2015]{kingma2014}
+\abntrefinfo{Kingma e Ba}{KINGMA; BA}{2015}
+{KINGMA, D.~P.; BA, J. Adam: A method for stochastic optimization.
+\emph{International Conference on Learning Representations (ICLR)}, 2015.
+ArXiv:1412.6980.}
+
+\bibitem[Landrum et al. 2024]{landrum2024}
+\abntrefinfo{Landrum et al.}{LANDRUM et al.}{2024}
+{LANDRUM, G. et al. \emph{{RDKit}: Open-Source Cheminformatics Software}. 2024.
+Dispon{\'\i}vel em: \url{https://www.rdkit.org}.}
+
+\bibitem[Lewis 2004]{lewis2004}
+\abntrefinfo{Lewis}{LEWIS}{2004}
+{LEWIS, R.~J. \emph{Aflatoxin {B1} -- Chemical Safety Information}. 2004.}
+
+\bibitem[Lipinski et al. 2001]{lipinski2001}
+\abntrefinfo{Lipinski et al.}{LIPINSKI et al.}{2001}
+{LIPINSKI, C.~A. et al. Experimental and computational approaches to estimate solubility and permeability in drug discovery and development settings.
+\emph{Advanced Drug Delivery Reviews}, v.~46, n.~1--3, p. 3--26, 2001.}
+
+\bibitem[Muratov et al. 2020]{muratov2020}
+\abntrefinfo{Muratov et al.}{MURATOV et al.}{2020}
+{MURATOV, E.~N. et al. {QSAR} without borders.
+\emph{Chemical Society Reviews}, v.~49, n.~11, p. 3525--3564, 2020.}
+
+\bibitem[{OECD} 2001]{oecd2001}
+\abntrefinfo{{OECD}}{{OECD}}{2001}
+{{OECD}. \emph{Guidance Document on Acute Oral Toxicity Testing}.
+[S.l.], 2001.}
+
+\bibitem[{OECD} 2008]{oecd2008}
+\abntrefinfo{{OECD}}{{OECD}}{2008}
+{{OECD}. \emph{Test No. 425: Acute Oral Toxicity -- Up-and-Down Procedure}.
+[S.l.], 2008.}
+
+\bibitem[{OECD} 2022]{oecd2022}
+\abntrefinfo{{OECD}}{{OECD}}{2022}
+{{OECD}. \emph{Test No. 423: Acute Oral Toxicity -- Acute Toxic Class Method}.
+[S.l.], 2022.}
+
+\bibitem[Pedregosa et al. 2011]{pedregosa2011}
+\abntrefinfo{Pedregosa et al.}{PEDREGOSA et al.}{2011}
+{PEDREGOSA, F. et al. Scikit-learn: Machine learning in {Python}.
+\emph{Journal of Machine Learning Research}, v.~12, p. 2825--2830, 2011.}
+
+\bibitem[Rogers e Hahn 2010]{rogers2010}
+\abntrefinfo{Rogers e Hahn}{ROGERS; HAHN}{2010}
+{ROGERS, D.; HAHN, M. Extended-connectivity fingerprints.
+\emph{Journal of Chemical Information and Modeling}, v.~50, n.~5, p. 742--754, 2010.}
+
+\bibitem[Sheridan 2013]{sheridan2013}
+\abntrefinfo{Sheridan}{SHERIDAN}{2013}
+{SHERIDAN, R.~P. Time-split cross-validation as a method for estimating the goodness of prospective prediction.
+\emph{Journal of Chemical Information and Modeling}, v.~53, n.~4, p. 783--790, 2013.}
+
+\bibitem[Southey e Brunavs 2023]{southey2023}
+\abntrefinfo{Southey e Brunavs}{SOUTHEY; BRUNAVS}{2023}
+{SOUTHEY, M.; BRUNAVS, M. Drug discovery and development: Introduction to the general principles.
+\emph{Frontiers in Drug Discovery}, v.~3, 2023.}
+
+\bibitem[Tweats et al. 2007]{tweats2007}
+\abntrefinfo{Tweats et al.}{TWEATS et al.}{2007}
+{TWEATS, D. et al. Determination of genetic toxicity and potential carcinogenicity in vitro--challenges post the seventh amendment to the european cosmetics directive.
+2007.}
+
+\bibitem[Vohora e Singh 2018]{vohora2018}
+\abntrefinfo{Vohora e Singh}{VOHORA; SINGH}{2018}
+{VOHORA, D.; SINGH, G. \emph{Pharmaceutical Medicine and Translational Clinical Research}. [S.l.]: Academic Press, 2018.}
+
+\bibitem[Wu et al. 2022]{toxric2022}
+\abntrefinfo{Wu et al.}{WU et al.}{2022}
+{WU, L. et al. Toxric: a comprehensive database of toxicological data and benchmarks.
+\emph{Nucleic Acids Research}, v.~51, n.~D1, p. D1432--D1445, 2022.}
+
+\bibitem[Zhu et al. 2009]{zhu2009}
+\abntrefinfo{Zhu et al.}{ZHU et al.}{2009}
+{ZHU, H. et al. Quantitative structure--activity relationship modeling of rat acute toxicity by oral exposure.
+\emph{Chemical Research in Toxicology}, v.~22, n.~12, p. 1913--1921, 2009.}
+
+\end{thebibliography}

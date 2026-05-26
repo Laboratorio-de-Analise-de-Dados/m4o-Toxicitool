@@ -13,9 +13,6 @@ Uso:
     python run_pipeline.py --etapa split
     python run_pipeline.py --etapa modelagem
     python run_pipeline.py --etapa analise
-
-    # Via Docker
-    docker-compose --profile pipeline up pipeline
 """
 
 import argparse
