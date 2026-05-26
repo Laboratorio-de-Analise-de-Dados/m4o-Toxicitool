@@ -67,22 +67,10 @@ data/splits/
 *.npz
 
 # Plots e imagens geradas
-*.png
-*.jpg
-*.jpeg
-*.svg
-
+´
 # Pastas de resultados volumosas
 results/modelos_salvos/
 results/plots/
-results/melhor_modelo/
-
-# Mantém os logs de métricas Excel (leves, úteis para rastreio)
-!results/tabelas/
-# Mas exclui os excels gerados automaticamente (regeneráveis)
-results/tabelas/multitask/MTL_Ranking_*.xlsx
-
-
 # ──────────────────────────────────────────────────────────────
 # PYTHON
 # ──────────────────────────────────────────────────────────────
