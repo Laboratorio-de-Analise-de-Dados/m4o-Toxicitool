@@ -40,22 +40,16 @@ def cria_dataframe(
     radius: int = 2,
     fpSize: int = 2048,
     use_count: bool = False,
-    col_smiles: str = "smiles",
 ) -> pd.DataFrame:
     """
-    Recebe DataFrame com coluna 'ROMol', gera fingerprints Morgan,
-    opcionalmente concatena descritores físico-químicos escalonados,
-    e retorna df sem as colunas pesadas (ROMol, Fingerprint).
+    Recebe DataFrame com coluna 'ROMol' e opcionalmente 'Descritores',
+    gera fingerprints Morgan e concatena os descritores.
     """
     rep    = Representacao(dataframe=dataframe_com_romol)
     df_fps = rep.fp_Morgan(col_frames="ROMol", radius=radius, fpSize=fpSize, use_count=use_count)
     df_fps = rep.bitVect_to_array("Fingerprint")
 
-    if DESCRITORES["ativo"]:
-        df_fps = rep.calcular_descritores(
-            col_smiles=col_smiles,
-            lista_descritores=DESCRITORES["lista"],
-        )
+    if "Descritores" in df_fps.columns:
         df_fps = rep.concatenar_descritores()
 
     df_fps = df_fps.drop(columns=["ROMol", "Fingerprint"], errors="ignore")
@@ -70,18 +64,24 @@ def main() -> None:
     print(f"Base carregada: {df_base.shape[0]} moléculas")
 
     sufixo = _sufixo_arquivo()
-    if DESCRITORES["ativo"]:
-        print(f"\nModo: Fingerprints + {len(DESCRITORES['lista'])} descritores físico-químicos")
-    else:
-        print("\nModo: Fingerprints apenas (descritores desativados)")
-
-    # Gera objetos ROMol UMA vez — evita reconversão para cada combinação
+    
+    # Gera objetos ROMol UMA vez
     print("\nGerando objetos RDKit (mol_to_frame)...")
     prep    = Representacao(dataframe=df_base)
     df_base = prep.mol_to_frame(col_smiles="smiles")
     df_base.dropna(subset=["ROMol"], inplace=True)
     df_base.reset_index(drop=True, inplace=True)
     print(f"Moléculas com ROMol válido: {len(df_base)}")
+
+    # Calcula descritores UMA vez se estiver ativo
+    if DESCRITORES["ativo"]:
+        print(f"\nCalculando conjunto de descritores: {DESCRITORES['lista']}")
+        df_base = prep.calcular_descritores(
+            col_smiles="smiles",
+            lista_descritores=DESCRITORES["lista"],
+        )
+        # O objeto prep atualizou o df_base interno, precisamos pegá-lo
+        df_base = prep.dataframe
 
     total    = len(QUANTITATIVO) * len(TAMANHO_FP) * len(RAIO)
     contador = 0
@@ -99,6 +99,7 @@ def main() -> None:
         print(f"\n[{contador}/{total}] Gerando: {nome_arquivo}")
         print(f"  → raio={r} | fpSize={t} | use_count={c} | desc={DESCRITORES['ativo']}")
 
+        # Passamos o df_base que já tem ROMol e Descritores pré-calculados
         df_resultado = cria_dataframe(df_base.copy(), radius=r, fpSize=t, use_count=c)
         df_resultado.to_pickle(caminho_saida)
         print(f"  ✓ Salvo: {caminho_saida} | shape={df_resultado.shape}")

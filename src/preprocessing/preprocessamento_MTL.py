@@ -10,16 +10,16 @@ Fluxo:
     4. Concatena TODAS as vias em um único DataFrame
     5. Canonização UMA única vez no universo completo de SMILES
     6. Deduplicação inteligente por (smiles + via) com |CV| <= cutoff
-    7. Merge outer de todas as vias por 'smiles'
+    7. Merge outer de todas as vias por 'smiles' (Otimizado com Polars)
     8. Salva em .pkl
 
 Configuração editável: src/config.py  (CONFIG_VIAS, PREPROC, PATHS)
 """
 
 import gc
-
 import numpy as np
 import pandas as pd
+import polars as pl
 
 from config import CONFIG_VIAS, PATHS, PREPROC
 from preprocessing.Limpeza import Limpeza
@@ -65,6 +65,7 @@ def canonizar_universo(df: pd.DataFrame) -> pd.DataFrame:
 
     smiles_unicos = pd.DataFrame({"smiles": df["smiles"].dropna().unique()})
     limpeza_temp  = Limpeza(dataframe=smiles_unicos)
+    # A classe Limpeza agora usa isomericSmiles=True por padrão
     df_canonico   = limpeza_temp.canonical_smiles(col_smiles="smiles", sanitize=True)
 
     mapa = dict(zip(smiles_unicos["smiles"], df_canonico["smiles"]))
@@ -79,38 +80,31 @@ def canonizar_universo(df: pd.DataFrame) -> pd.DataFrame:
 def deduplicar_por_via(df: pd.DataFrame) -> pd.DataFrame:
     """
     Deduplicação inteligente por (smiles + via).
-
-    Regras:
-        - 1 registro      → mantém como está
-        - |CV| <= cutoff  → dados consistentes → retorna a média
-        - |CV| >  cutoff  → dados inconsistentes → descarta o grupo
     """
     cutoff_cv  = PREPROC["cutoff_cv"]
-    resultados = []
-
-    for (smiles, via), grupo in df.groupby(["smiles", "via"]):
-        if len(grupo) == 1:
-            resultados.append(grupo)
-            continue
-
-        valores = pd.to_numeric(grupo["log_dl50"], errors="coerce").dropna()
-        if len(valores) == 0:
-            continue
-
-        media  = float(valores.mean())
-        desvio = float(valores.std())
-        cv     = 0.0 if media == 0 else abs(desvio / media)
-
-        if cv <= cutoff_cv:
-            linha             = grupo.iloc[0:1].copy()
-            linha["log_dl50"] = media
-            resultados.append(linha)
-        # cv > cutoff → grupo descartado (labs inconsistentes)
-
-    if not resultados:
-        return pd.DataFrame(columns=df.columns)
-
-    return pd.concat(resultados, ignore_index=True)
+    
+    # Usando Polars para deduplicação rápida
+    q = pl.from_pandas(df).lazy()
+    
+    # Agrupa e calcula estatísticas
+    dedup = q.group_by(["smiles", "via"]).agg([
+        pl.col("log_dl50").mean().alias("mean_val"),
+        pl.col("log_dl50").std().alias("std_val"),
+        pl.len().alias("count")
+    ]).with_columns([
+        (pl.col("std_val") / pl.col("mean_val").abs()).fill_nan(0.0).alias("cv")
+    ])
+    
+    # Filtra por CV ou registros únicos
+    validos = dedup.filter(
+        (pl.col("count") == 1) | (pl.col("cv") <= cutoff_cv)
+    ).select([
+        pl.col("smiles"),
+        pl.col("via"),
+        pl.col("mean_val").alias("log_dl50")
+    ])
+    
+    return validos.collect().to_pandas()
 
 
 # ==========================================
@@ -141,34 +135,47 @@ def main() -> pd.DataFrame:
     )
 
     print("\n" + "=" * 55)
-    print("  ETAPA 2 — Canonização global de SMILES")
+    print("  ETAPA 2 — Canonização global de SMILES (Isomérico)")
     print("=" * 55)
     df_all = canonizar_universo(df_all)
     print(f"  SMILES únicos após canonização: {df_all['smiles'].nunique()}")
 
     print("\n" + "=" * 55)
-    print("  ETAPA 3 — Deduplicação por (smiles + via)")
+    print("  ETAPA 3 — Deduplicação por (smiles + via) [Polars]")
     print("=" * 55)
     n_antes = len(df_all)
     df_all  = deduplicar_por_via(df_all)
     print(f"  {n_antes} → {len(df_all)} registros após deduplicação")
 
     print("\n" + "=" * 55)
-    print("  ETAPA 4 — Merge outer por via")
+    print("  ETAPA 4 — Merge outer por via [Polars]")
     print("=" * 55)
-    dfs_por_via = []
-    for nome_via in CONFIG_VIAS.keys():
-        df_via = (
-            df_all[df_all["via"] == nome_via][["smiles", "log_dl50"]]
-            .rename(columns={"log_dl50": f"log_dl50_{nome_via}"})
-            .copy()
-        )
-        print(f"  [{nome_via}] {len(df_via)} moléculas")
-        dfs_por_via.append(df_via)
 
-    df_final = dfs_por_via[0]
-    for df_via in dfs_por_via[1:]:
-        df_final = df_final.merge(df_via, on="smiles", how="outer")
+    # Convertendo para Polars para pivotagem eficiente
+    pl_all = pl.from_pandas(df_all)
+
+    # Pivotagem: 'via' vira colunas, 'log_dl50' vira valores, agrupado por 'smiles'
+    df_final_pl = pl_all.pivot(
+        on="via",
+        index="smiles",
+        values="log_dl50"
+    )
+
+    # Renomeia as colunas para o padrão 'log_dl50_VIA'
+    vias_detectadas = [c for c in df_final_pl.columns if c != "smiles"]
+    df_final_pl = df_final_pl.rename({v: f"log_dl50_{v}" for v in vias_detectadas})
+
+    # Garante que TODAS as vias configuradas existam no DataFrame final (mesmo que vazias)
+    for via in CONFIG_VIAS.keys():
+        col_target = f"log_dl50_{via}"
+        if col_target not in df_final_pl.columns:
+            df_final_pl = df_final_pl.with_columns(pl.lit(None).cast(pl.Float64).alias(col_target))
+
+    # Reordenar colunas para consistência: smiles + vias na ordem do config
+    colunas_ordenadas = ["smiles"] + [f"log_dl50_{v}" for v in CONFIG_VIAS.keys()]
+    df_final_pl = df_final_pl.select(colunas_ordenadas)
+
+    df_final = df_final_pl.to_pandas()
 
     print(f"\nDataFrame final: {df_final.shape[0]} mol × {df_final.shape[1]} colunas")
     print(f"NaNs por coluna:\n{df_final.isna().sum().to_string()}")
