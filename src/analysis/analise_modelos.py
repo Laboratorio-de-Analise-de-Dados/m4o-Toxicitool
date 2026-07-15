@@ -17,13 +17,23 @@ Método de split registrado na coluna 'metodo_split' do log.
 
 import shutil
 from pathlib import Path
-from adjustText import adjust_text
+import sys
+
+_SRC  = Path(__file__).resolve().parent.parent
+_RAIZ = _SRC.parent
+if str(_RAIZ) not in sys.path:
+    sys.path.insert(0, str(_RAIZ))
+
+try:
+    from adjustText import adjust_text
+except ImportError:
+    adjust_text = None
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from config import PATHS, VIAS
+from src.config import PATHS, VIAS
 
 
 # ==========================================
@@ -34,6 +44,11 @@ def carregar_log() -> pd.DataFrame:
     if not PATHS["log_excel"].exists():
         raise FileNotFoundError(f"Log não encontrado: {PATHS['log_excel']}")
     df = pd.read_excel(PATHS["log_excel"])
+    
+    # Garante que loss_global existe para evitar KeyError (bug fix para logs antigos)
+    if "loss_global" not in df.columns:
+        df["loss_global"] = np.nan
+        
     print(f"Log carregado: {len(df)} experimentos\n")
     return df
 
@@ -63,47 +78,49 @@ def rankear(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def identificar_melhor(df_ranked: pd.DataFrame) -> pd.Series:
-    melhor = df_ranked.iloc[0]
+def identificar_campeoes_por_split(df_ranked: pd.DataFrame) -> pd.DataFrame:
+    """Identifica o melhor modelo para cada método de split presente no log."""
+    if "metodo_split" not in df_ranked.columns:
+        return df_ranked.head(1)
+
+    campeoes = df_ranked.groupby("metodo_split").head(1).copy()
+    
     print("=" * 60)
-    print("  MELHOR MODELO (global)")
+    print(f"  CAMPEÕES POR TIPO DE SPLIT ({len(campeoes)})")
     print("=" * 60)
-    print(f"  Arquivo    : {melhor['arquivo_origem']}")
-    print(f"  Split      : {melhor.get('metodo_split', '?')}")
-    print(f"  R² médio   : {melhor['r2_medio']:.4f}")
-    print(f"  MAE médio  : {melhor['mae_medio']:.4f}")
-    print(f"  Loss       : {melhor['loss_global']:.4f}")
-    print(f"  Nº vias    : {int(melhor['n_vias'])}")
-    for via in VIAS:
-        if f"r2_{via}" in melhor and not pd.isna(melhor[f"r2_{via}"]):
-            print(f"    {via:12s} → R²={melhor[f'r2_{via}']:.3f} | MAE={melhor[f'mae_{via}']:.3f}")
+    for _, row in campeoes.iterrows():
+        print(f"  {row['metodo_split']:12s} → R²={row['r2_medio']:.4f} | {row['arquivo_origem']}")
     print("=" * 60)
-    return melhor
+    
+    return campeoes
 
 
 # ==========================================
-# CÓPIA DO MELHOR MODELO
+# CÓPIA DOS MELHORES MODELOS
 # ==========================================
 
-def copiar_melhor_modelo(melhor: pd.Series) -> None:
+def registrar_e_copiar_campeoes(campeoes: pd.DataFrame) -> None:
     """
-    Copia o .keras do melhor modelo para results/melhor_modelo/.
+    Copia os .keras dos campeões para results/melhor_modelo/ e gera resumo único.
     """
     destino = PATHS["melhor_modelo"]
+    destino.mkdir(parents=True, exist_ok=True)
 
-    caminho_str = melhor.get("caminho_modelo", "")
-    if caminho_str:
-        origem = Path(caminho_str)
-        if origem.exists():
-            shutil.copy2(origem, destino / origem.name)
-            print(f"✓ Modelo copiado: {destino / origem.name}")
-        else:
-            print(f"⚠  Modelo não encontrado: {origem}")
-    else:
-        print("⚠  Coluna 'caminho_modelo' não encontrada no log.")
+    # Limpa pasta anterior se necessário (opcional, mantido para evitar confusão)
+    for f in destino.glob("*.keras"): f.unlink()
 
-    melhor.to_frame(name="valor").to_excel(destino / "resumo_melhor_modelo.xlsx")
-    print(f"✓ Resumo salvo: {destino / 'resumo_melhor_modelo.xlsx'}")
+    for _, melhor in campeoes.iterrows():
+        caminho_str = melhor.get("caminho_modelo", "")
+        if caminho_str:
+            origem = Path(caminho_str)
+            if origem.exists():
+                shutil.copy2(origem, destino / origem.name)
+                print(f"✓ Modelo copiado: {origem.name}")
+    
+    # Salva resumo consolidado
+    resumo_path = destino / "resumo_melhores_modelos.xlsx"
+    campeoes.to_excel(resumo_path, index=False)
+    print(f"✓ Resumo consolidado salvo: {resumo_path.name}")
 
 
 # ==========================================
@@ -125,14 +142,13 @@ plt.rcParams.update({
 })
 
 def _labels_top(top: pd.DataFrame) -> list[str]:
-    """Encurta os nomes dos arquivos iterando pelas linhas."""
+    """Gera nomes intuitivos para os modelos nas visualizações."""
     labels = []
     for i, (_, row) in enumerate(top.iterrows()):
         nome = row['arquivo_origem'].replace('MTL_df_final_', '').replace('.pkl', '')
-        nome = nome.replace('quantitativo', 'Quant').replace('binario', 'Bin')
-        nome = nome.replace('bits', 'b').replace('raio', 'R')
+        # Formato: MTL_binario_2048bits_raio5
         nome = nome.replace('__desc', '\n(+Desc)')
-        labels.append(f"#{i+1}\n{nome}")
+        labels.append(f"#{i+1} MTL_{nome}")
     return labels
 
 def _ajustar_limite_y_barras(ax, vals, folga_percentual=0.15):
@@ -165,7 +181,7 @@ def plot_r2_por_via(df_ranked: pd.DataFrame, top_n: int = 10, sufixo: str = "") 
 
     ax.axhline(0.5, color="#333333", linestyle=":", linewidth=1.2, label="Baseline R²=0.5")
     ax.set_xticks(x)
-    ax.set_xticklabels(labels, fontsize=9)
+    ax.set_xticklabels(labels, fontsize=9, rotation=45, ha='right')
     ax.set_ylabel("Coeficiente de Determinação ($R^2$)", fontsize=11)
     
     _ajustar_limite_y_barras(ax, all_vals)
@@ -177,7 +193,7 @@ def plot_r2_por_via(df_ranked: pd.DataFrame, top_n: int = 10, sufixo: str = "") 
     ax.set_title(titulo, fontsize=12, pad=15, fontweight="bold")
     
     # Legenda fora da área de plotagem
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=len(vias_disp)+1, frameon=False)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=len(vias_disp)+1, frameon=False)
     
     plt.tight_layout()
     nome = f"comparativo_r2_por_via{'_' + sufixo if sufixo else ''}.png"
@@ -209,14 +225,14 @@ def plot_mae_por_via(df_ranked: pd.DataFrame, top_n: int = 10, sufixo: str = "")
                         f"{val:.2f}", ha="center", va="bottom", fontsize=8, rotation=90)
 
     ax.set_xticks(x)
-    ax.set_xticklabels(labels, fontsize=9)
+    ax.set_xticklabels(labels, fontsize=9, rotation=45, ha='right')
     ax.set_ylabel("Erro Absoluto Médio (MAE log-escala)", fontsize=11)
     
     _ajustar_limite_y_barras(ax, all_vals)
 
     titulo = f"Erro Médio por Via de Exposição (MAE) — Top {top_n}" + (f" ({sufixo})" if sufixo else "")
     ax.set_title(titulo, fontsize=12, pad=15, fontweight="bold")
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=len(vias_disp), frameon=False)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=len(vias_disp), frameon=False)
     
     plt.tight_layout()
     nome = f"comparativo_mae_por_via{'_' + sufixo if sufixo else ''}.png"
@@ -226,54 +242,52 @@ def plot_mae_por_via(df_ranked: pd.DataFrame, top_n: int = 10, sufixo: str = "")
 
 
 def plot_panorama(df_ranked: pd.DataFrame) -> None:
-    """Scatter global com repulsão de texto básica e símbolo acadêmico para o melhor.""" 
+    """Scatter global destacando o campeão de cada técnica de split.""" 
     
-    fig, ax = plt.subplots(figsize=(10, 7))
+    fig, ax = plt.subplots(figsize=(11, 8))
 
     metodos_unicos = df_ranked["metodo_split"].unique() if "metodo_split" in df_ranked.columns else ["todos"]
     paleta = {"scaffold": "#4C72B0", "butina_cutoff0.4": "#DD8452", "random": "#55A868", "butina_batch": "#C44E52", "todos": "#8172B3"}
 
+    # 1. Plot de todos os modelos (fundo)
     for metodo in metodos_unicos:
         sub = df_ranked[df_ranked["metodo_split"] == metodo] if "metodo_split" in df_ranked.columns else df_ranked
         cor = paleta.get(metodo, "#7f7f7f")
         ax.scatter(sub["mae_medio"], sub["r2_medio"],
-                   c=cor, s=90, alpha=0.8, edgecolors="white", linewidths=0.8,
-                   label=metodo.replace("_cutoff0.4", ""))
+                   c=cor, s=60, alpha=0.3, edgecolors="none", zorder=2)
 
-    melhor = df_ranked.iloc[0]
-    
-    ax.scatter(melhor["mae_medio"], melhor["r2_medio"],
-               facecolor="none", edgecolor="black", s=400, linewidth=2, zorder=4)
-    ax.scatter(melhor["mae_medio"], melhor["r2_medio"],
-               color="black", marker="+", s=200, linewidth=2, zorder=5, label="Melhor Modelo")
-
+    # 2. Destacar CAMPEÕES de cada split
+    campeoes = identificar_campeoes_por_split(df_ranked)
     texts = []
 
-    for i, (_, row) in enumerate(df_ranked.head(3).iterrows()):
-        nome_curto = row["arquivo_origem"].replace("MTL_df_final_", "").replace(".pkl", "")
-        nome_curto = nome_curto.replace("quantitativo", "Q").replace("binario", "B").replace("__desc", " +D")
+    for _, row in campeoes.iterrows():
+        metodo = row["metodo_split"]
+        cor = paleta.get(metodo, "black")
         
-        t = ax.text(row["mae_medio"], row["r2_medio"], f"#{i+1} {nome_curto}",
-                    fontsize=8, bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="gray", alpha=0.8))
-        texts.append(t)
+        # Marcador de destaque
+        ax.scatter(row["mae_medio"], row["r2_medio"],
+                   facecolor="none", edgecolor=cor, s=250, linewidth=2, zorder=4, label=f"Campeão {metodo}")
+        ax.scatter(row["mae_medio"], row["r2_medio"],
+                   color=cor, marker="*", s=100, zorder=5)
 
-    try:
-
-        adjust_text(texts, arrowprops=dict(arrowstyle="-", color='gray', lw=0.5))
-    except NameError:
-        print("  [Aviso] adjustText não instalado. Repulsão de texto desativada no Panorama.")
-        print("  Dica: pip install adjustText")
-
-
+        # Rótulo do campeão
+        nome_curto = row["arquivo_origem"].replace("MTL_df_final_", "").replace(".pkl", "")
+        # Simplifica para o gráfico
+        nome_grafico = f"{metodo}\n(MTL_{nome_curto.replace('binario_', 'B_').replace('quantitativo_', 'Q_')})"
+        
+        t = ax.text(row["mae_medio"], row["r2_medio"], nome_grafico,
+                    fontsize=8, fontweight='bold',
+                    bbox=dict(boxstyle="round,pad=0.3", fc="white", ec=cor, alpha=0.9, lw=1))
+    
     ax.set_xlabel("Erro Absoluto Médio Global (MAE) $\\rightarrow$ Menor é melhor", fontsize=11)
     ax.set_ylabel("Coeficiente de Determinação Global ($R^2$) $\\rightarrow$ Maior é melhor", fontsize=11)
-    ax.set_title("Panorama de Desempenho: $R^2$ vs MAE por Técnica de Split", fontsize=12, pad=15, fontweight="bold")
+    ax.set_title("Panorama de Desempenho: $R^2$ vs MAE por Técnica de Split\n(Destaque para o melhor de cada categoria)", fontsize=12, pad=15, fontweight="bold")
     
-    ax.legend(frameon=True, facecolor="white", edgecolor="#E0E0E0", fontsize=9)
+    ax.legend(loc="upper left", frameon=True, facecolor="white", edgecolor="#E0E0E0", fontsize=9)
     plt.tight_layout()
     plt.savefig(PATHS["plots_analise"] / "panorama_r2_vs_mae.png", dpi=300, bbox_inches="tight")
     plt.close()
-    print("✓ Plot panorama salvo")
+    print("✓ Plot panorama (com campeões múltiplos) salvo")
 
 
 def salvar_ranking(df_ranked: pd.DataFrame, sufixo: str = "") -> None:
@@ -325,9 +339,10 @@ def main():
     df        = carregar_log()
     df        = calcular_scores(df)
     df_ranked = rankear(df)
-    melhor    = identificar_melhor(df_ranked)
-
-    copiar_melhor_modelo(melhor)
+    
+    # Identifica e registra campeões por split (Scaffold, Random, Butina)
+    campeoes = identificar_campeoes_por_split(df_ranked)
+    registrar_e_copiar_campeoes(campeoes)
 
     # ── Gráficos e ranking globais ─────────────────────────────────
     top_n = min(10, len(df_ranked))
@@ -340,7 +355,7 @@ def main():
     analisar_por_metodo(df)
 
     print("\n✓ Análise concluída!")
-    return df_ranked, melhor
+    return df_ranked, campeoes
 
 
 if __name__ == "__main__":

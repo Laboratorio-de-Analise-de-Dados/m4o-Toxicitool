@@ -50,49 +50,17 @@ def _path_indices(stem: str) -> Path:
 
 def _computar_split(df: pd.DataFrame) -> tuple:
     """
-    Seleciona e executa o método de split configurado.
-
-    Para method="butina":
-        n ≤ BUTINA_FULL_MAX → butina_split clássico (exato, O(n²))
-        n >  BUTINA_FULL_MAX → butina_batch_split (leader-follower, O(n×k))
-
-    Ambas as variantes produzem a mesma interface de saída e servem
-    igualmente bem para evitar data leakage entre treino e teste.
+    Executa o three_way_split (treino, val, teste) usando o método configurado.
     """
-    metodo   = SPLIT["method"]
-    n        = len(df)
     splitter = Splitter(dataframe=df, smiles_col="smiles")
 
-    if metodo == "scaffold":
-        return splitter.scaffold_split(
-            test_size=SPLIT["test_size"],
-            random_state=SPLIT["random_state"],
-        )
-
-    elif metodo == "butina":
-        if n <= BUTINA_FULL_MAX:
-            print(f"  n={n:,} ≤ {BUTINA_FULL_MAX:,} → Butina clássico (exato)")
-            try:
-                return splitter.butina_split(
-                    test_size=SPLIT["test_size"],
-                    tanimoto_cutoff=SPLIT["tanimoto_cutoff"],
-                    random_state=SPLIT["random_state"],
-                )
-            except MemoryError:
-                print("  MemoryError → fallback para Butina-batch")
-
-        print(f"  n={n:,} > {BUTINA_FULL_MAX:,} → Butina-batch (leader-follower, O(n×k))")
-        return splitter.butina_batch_split(
-            test_size=SPLIT["test_size"],
-            tanimoto_cutoff=SPLIT["tanimoto_cutoff"],
-            random_state=SPLIT["random_state"],
-        )
-
-    else:  # random
-        return splitter.random_split(
-            test_size=SPLIT["test_size"],
-            random_state=SPLIT["random_state"],
-        )
+    return splitter.three_way_split(
+        test_size=SPLIT["test_size"],
+        val_size=SPLIT["val_size"],
+        method=SPLIT["method"],
+        tanimoto_cutoff=SPLIT.get("tanimoto_cutoff", 0.4),
+        random_state=SPLIT["random_state"],
+    )
 
 
 def main() -> None:
@@ -127,8 +95,18 @@ def main() -> None:
         stem        = arquivo.stem
         caminho_npz = _path_indices(stem)
 
+        # Checa se o arquivo existe e se contém o val_idx (migração 2-way -> 3-way)
+        existe_completo = False
         if caminho_npz.exists():
-            print(f"  ↩  Já existe, pulando: {caminho_npz.name}")
+            try:
+                data = np.load(caminho_npz)
+                if "val_idx" in data:
+                    existe_completo = True
+            except Exception:
+                pass
+
+        if existe_completo:
+            print(f"  ↩  Já existe (3-way), pulando: {caminho_npz.name}")
             pulados += 1
             continue
 
@@ -139,9 +117,9 @@ def main() -> None:
             print(f"  ✗  Coluna 'smiles' não encontrada — pulando")
             continue
 
-        train_idx, test_idx = _computar_split(df)
+        train_idx, val_idx, test_idx = _computar_split(df)
 
-        np.savez(caminho_npz, train_idx=train_idx, test_idx=test_idx)
+        np.savez(caminho_npz, train_idx=train_idx, val_idx=val_idx, test_idx=test_idx)
         print(f"  ✓  Salvo: {caminho_npz.name}")
         calculados += 1
 

@@ -35,6 +35,52 @@ class Splitter:
     # API PÚBLICA
     # ──────────────────────────────────────────────────────────────────
 
+    def three_way_split(
+        self,
+        test_size: float = 0.2,
+        val_size: float = 0.1,
+        method: str = "scaffold",
+        tanimoto_cutoff: float = 0.4,
+        random_state: int = 42,
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Retorna (train_idx, val_idx, test_idx).
+        Estratégia: 
+            1. Separa o conjunto de teste usando o método químico (scaffold/butina).
+            2. Do que sobrou (treino original), separa uma fração para validação
+               usando split aleatório (validação serve para monitoramento interno).
+        """
+        # 1. Obter split inicial (treino_restante, teste)
+        if method == "scaffold":
+            train_rest_idx, test_idx = self.scaffold_split(test_size, random_state)
+        elif method == "butina":
+            # Escolhe entre batch ou clássico baseado no tamanho do df
+            if len(self.df) > 8000:
+                train_rest_idx, test_idx = self.butina_batch_split(
+                    test_size, tanimoto_cutoff, random_state=random_state
+                )
+            else:
+                train_rest_idx, test_idx = self.butina_split(
+                    test_size, tanimoto_cutoff, random_state=random_state
+                )
+        else:
+            train_rest_idx, test_idx = self.random_split(test_size, random_state)
+
+        # 2. Separar validação do treino restante
+        # val_size é fração do TOTAL, precisamos converter para fração do RESTANTE
+        # Ex: total=100, teste=20, val=10 -> sobra 80. Fração val/restante = 10/80 = 0.125
+        val_fraction_of_rest = val_size / (1.0 - test_size)
+        
+        from sklearn.model_selection import train_test_split
+        train_idx, val_idx = train_test_split(
+            train_rest_idx, 
+            test_size=val_fraction_of_rest, 
+            random_state=random_state
+        )
+
+        print(f"  [3-Way Split] Final: Treino={len(train_idx)} | Val={len(val_idx)} | Teste={len(test_idx)}")
+        return train_idx, val_idx, test_idx
+
     def random_split(
         self,
         test_size: float = 0.2,
@@ -60,11 +106,11 @@ class Splitter:
         random_state: int = 42,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Split por Murcko Scaffold. O(n) — recomendado para datasets grandes.
+        Split por Murcko Scaffold. O(n).
 
-        Agrupa moléculas pelo mesmo núcleo de Murcko e distribui grupos inteiros
-        entre treino e teste, evitando que variantes da mesma série química
-        vazem entre os conjuntos.
+        Ajuste: Em vez de apenas preencher o teste com os maiores grupos,
+        usamos uma abordagem que tenta manter a proporção desejada de forma
+        mais equilibrada, evitando que um scaffold gigante domine o teste.
         """
         print("  [Scaffold] Extraindo Murcko Scaffolds...")
         scaffolds = defaultdict(list)
@@ -77,29 +123,47 @@ class Splitter:
                         mol=mol, includeChirality=False
                     )
                     scaffolds[scaffold].append(i)
+                else:
+                    scaffolds["invalid"].append(i)
             except Exception:
-                pass
+                scaffolds["invalid"].append(i)
 
         print(f"  [Scaffold] {len(scaffolds)} scaffolds únicos encontrados.")
 
-        rng           = np.random.default_rng(random_state)
-        scaffold_sets = list(scaffolds.values())
-        rng.shuffle(scaffold_sets)
-        scaffold_sets.sort(key=lambda x: len(x), reverse=True)
-
-        n_total, n_teste = len(self.df), int(np.ceil(len(self.df) * test_size))
+        # Ordenar scaffolds por tamanho (decrescente) para controle
+        scaffold_sets = sorted(list(scaffolds.values()), key=len, reverse=True)
+        
+        n_total = len(self.df)
+        n_teste_target = int(np.ceil(n_total * test_size))
+        
         test_indices, train_indices = [], []
-
-        for scaf_list in scaffold_sets:
-            if len(test_indices) < n_teste:
-                test_indices.extend(scaf_list)
+        
+        # Semente para reprodutibilidade no embaralhamento dos grupos pequenos
+        rng = np.random.default_rng(random_state)
+        
+        # Separa os grupos "gigantes" (top 5%) para distribuição cuidadosa
+        cutoff_gigante = max(1, int(len(scaffold_sets) * 0.05))
+        gigantes = scaffold_sets[:cutoff_gigante]
+        comuns   = scaffold_sets[cutoff_gigante:]
+        
+        # Embaralha os comuns para evitar viés de ordem
+        rng.shuffle(comuns)
+        
+        # Distribui gigantes alternadamente (1 para teste, N para treino) para não saturar teste
+        for i, group in enumerate(gigantes):
+            if len(test_indices) < n_teste_target and (i % 4 == 0): # Apenas 25% dos gigantes no teste
+                test_indices.extend(group)
             else:
-                train_indices.extend(scaf_list)
+                train_indices.extend(group)
+                
+        # Preenche o restante com os grupos comuns
+        for group in comuns:
+            if len(test_indices) < n_teste_target:
+                test_indices.extend(group)
+            else:
+                train_indices.extend(group)
 
-        sobrando = set(range(n_total)) - set(test_indices) - set(train_indices)
-        train_indices.extend(sobrando)
-
-        print(f"  [Scaffold] Treino={len(train_indices)} | Teste={len(test_indices)}")
+        print(f"  [Scaffold] Split Final: Treino={len(train_indices)} | Teste={len(test_indices)}")
         return np.array(train_indices), np.array(test_indices)
 
     def butina_split(

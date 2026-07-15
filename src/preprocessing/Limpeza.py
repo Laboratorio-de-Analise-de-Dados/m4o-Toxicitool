@@ -112,7 +112,8 @@ class Limpeza:
                     mol = self.uncharger.uncharge(mol)
                     mol = self.tautomer_enumerator.Canonicalize(mol)
 
-                smile = Chem.MolToSmiles(mol, isomericSmiles=False)
+                # ALTERADO: isomericSmiles=True para preservar estereoquímica
+                smile = Chem.MolToSmiles(mol, isomericSmiles=True)
 
             except Exception:
                 smile = np.nan
@@ -136,7 +137,8 @@ class Limpeza:
             try:
                 mol      = Chem.MolFromSmiles(smi)
                 mol_frag = rdMolStandardize.FragmentParent(mol)
-                fragmentos.append(Chem.MolToSmiles(mol_frag, isomericSmiles=False))
+                # ALTERADO: isomericSmiles=True
+                fragmentos.append(Chem.MolToSmiles(mol_frag, isomericSmiles=True))
             except Exception:
                 fragmentos.append(np.nan)
 

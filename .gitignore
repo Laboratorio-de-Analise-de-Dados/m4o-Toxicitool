@@ -66,8 +66,6 @@ data/splits/
 *.pkl
 *.npz
 
-# Plots e imagens geradas
-´
 # Pastas de resultados volumosas
 results/modelos_salvos/
 results/plots/

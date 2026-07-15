@@ -25,6 +25,9 @@ PATHS = {
     "modelos_morgan":  RAIZ / "results" / "modelos_salvos" / "morgan",
     "melhor_modelo":   RAIZ / "results" / "melhor_modelo",
     "log_excel":       RAIZ / "results" / "tabelas" / "multitask" / "MTL_Log_Modelos.xlsx",
+    "plots_validacao": RAIZ / "results" / "plots" / "multitask" / "validacao",
+    "tabelas_validacao": RAIZ / "results" / "tabelas" / "multitask" / "validacao",
+    "estatistica":     RAIZ / "results" / "plots" / "multitask" / "analise" / "estatistica",
 }
 
 for _path in PATHS.values():
@@ -56,7 +59,8 @@ SPLIT = {
     # "scaffold" | "butina" | "random"
     "method":          "butina",
     "tanimoto_cutoff": 0.4,
-    "test_size":       0.2,
+    "test_size":       0.15,
+    "val_size":        0.1,   # Fração do total para validação fixa
     "random_state":    42,
 }
 
@@ -69,25 +73,21 @@ DESCRITORES = {
     "ativo": True,
 
     # Descritores RDKit calculados via Chem.Descriptors.
-    # Escolhidos por relevância ADME/toxicocinética para LD50.
-    # Relevância por grupo:
-    #   Lipofilicidade  → MolLogP                 (distribuição tecidual)
-    #   Tamanho/Volume  → MolWt, LabuteASA, TPSA  (absorção, penetração)
-    #   Flexibilidade   → NumRotatableBonds, FractionCSP3
-    #   Grupos polares  → NumHDonors, NumHAcceptors
-    #   Aromaticidade   → RingCount, NumAromaticRings
-    "lista": [
-        "MolLogP",
-        "MolWt",
-        "TPSA",
-        "LabuteASA",
-        "NumRotatableBonds",
-        "NumHDonors",
-        "NumHAcceptors",
-        "FractionCSP3",
-        "RingCount",
-        "NumAromaticRings",
-    ],
+    # Se 'todos', calcula todos os ~200 descritores disponíveis no RDKit.
+    # Se lista, calcula apenas os especificados.
+    "lista": "todos", 
+    # "lista": [
+    #     "MolLogP",
+    #     "MolWt",
+    #     "TPSA",
+    #     "LabuteASA",
+    #     "NumRotatableBonds",
+    #     "NumHDonors",
+    #     "NumHAcceptors",
+    #     "FractionCSP3",
+    #     "RingCount",
+    #     "NumAromaticRings",
+    # ],
 }
 
 # ==========================================
@@ -96,4 +96,11 @@ DESCRITORES = {
 PREPROC = {
     "log_cutoff": -0.5,
     "cutoff_cv":   0.2,
+}
+
+# ==========================================
+# CONFIGURAÇÃO ESTATÍSTICA (TODO 3)
+# ==========================================
+ESTATISTICA = {
+    "n_repeticoes": 30,  # 30 execuções para média e desvio padrão
 }
